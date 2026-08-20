@@ -103,6 +103,16 @@ class AppointmentLayout extends StatefulWidget {
     return state._getAppointmentViewOnPoint(x, y);
   }
 
+  /// Return all appointment views that intersect the given x and y position.
+  List<AppointmentView>? getAppointmentViewsOnPoint(double x, double y) {
+    // ignore: avoid_as
+    final GlobalKey appointmentLayoutKey = key! as GlobalKey;
+    final _AppointmentLayoutState state =
+        // ignore: avoid_as
+        appointmentLayoutKey.currentState! as _AppointmentLayoutState;
+    return state._getAppointmentViewsOnPoint(x, y);
+  }
+
   /// Returns the visible appointment view collection.
   List<AppointmentView> getAppointmentViewCollection() {
     // ignore: avoid_as
@@ -457,6 +467,27 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
     return selectedAppointmentView;
   }
 
+  List<AppointmentView>? _getAppointmentViewsOnPoint(double x, double y) {
+    if (_appointmentCollection.isEmpty) {
+      return null;
+    }
+
+    final List<AppointmentView> selectedAppointmentViews = <AppointmentView>[];
+    for (int i = 0; i < _appointmentCollection.length; i++) {
+      final AppointmentView appointmentView = _appointmentCollection[i];
+      if (appointmentView.appointment != null &&
+          appointmentView.appointmentRect != null &&
+          appointmentView.appointmentRect!.left <= x &&
+          appointmentView.appointmentRect!.right >= x &&
+          appointmentView.appointmentRect!.top <= y &&
+          appointmentView.appointmentRect!.bottom >= y) {
+        selectedAppointmentViews.add(appointmentView);
+      }
+    }
+
+    return selectedAppointmentViews;
+  }
+
   void _updateVisibleAppointment() {
     widget.updateCalendarState(_updateCalendarStateDetails);
     if (!mounted) {
@@ -475,7 +506,7 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
   ) {
     if (visibleAppointments.isEmpty ||
         widget.view == CalendarView.month ||
-        widget.view == CalendarView.timelineMonth) {
+        (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth)) {
       return visibleAppointments;
     }
 
@@ -582,6 +613,7 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
         }
         break;
       case CalendarView.timelineMonth:
+      case CalendarView.timelineCustomMonth:
         {
           _updateTimelineMonthAppointmentDetails(visibleAppointments);
         }
@@ -1038,11 +1070,11 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
 
       double appointmentHeight = timelineAppointmentHeight;
       if (appointmentHeight * appointmentView.maxPositions > slotHeight) {
-        appointmentHeight = slotHeight / appointmentView.maxPositions;
+        appointmentHeight = slotHeight;
       }
 
       xPosition = column * viewWidth;
-      yPosition = appointmentHeight * appointmentView.position;
+      yPosition = 0;
       if (isResourceEnabled &&
           appointment.resourceIds != null &&
           appointment.resourceIds!.isNotEmpty) {
@@ -1105,7 +1137,7 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
           widget.isRTL ? xPosition - width : xPosition,
           yPosition,
           width > 0 ? width : 0,
-          appointmentHeight > 1 ? appointmentHeight - 1 : 0,
+          appointmentHeight > 1 ? appointmentHeight : 0,
         ),
         cornerRadius,
       );
@@ -1257,7 +1289,7 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
 
       double appointmentHeight = timelineAppointmentHeight;
       if (appointmentHeight * appointmentView.maxPositions > slotHeight) {
-        appointmentHeight = slotHeight / appointmentView.maxPositions;
+        appointmentHeight = slotHeight;
       }
 
       xPosition = column * viewWidth;
@@ -1269,7 +1301,7 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
       }
 
       xPosition += timePosition;
-      yPosition = appointmentHeight * appointmentView.position;
+      yPosition = 0;
       if (isResourceEnabled &&
           appointment.resourceIds != null &&
           appointment.resourceIds!.isNotEmpty) {
@@ -1314,13 +1346,13 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
       final Radius cornerRadius = Radius.circular(
         (appointmentHeight * 0.1) > 2 ? 2 : (appointmentHeight * 0.1),
       );
-      width = width > 1 ? width - 1 : 0;
+      width = width > 1 ? width : 0;
       final RRect rect = RRect.fromRectAndRadius(
         Rect.fromLTWH(
           widget.isRTL ? xPosition - width : xPosition,
           yPosition,
           width,
-          appointmentHeight > 1 ? appointmentHeight - 1 : 0,
+          appointmentHeight > 1 ? appointmentHeight : 0,
         ),
         cornerRadius,
       );
@@ -1337,7 +1369,7 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
       return settings.timelineAppointmentHeight;
     }
 
-    if (view == CalendarView.timelineMonth) {
+    if ((view == CalendarView.timelineMonth || view == CalendarView.timelineCustomMonth)) {
       return 25;
     }
 
@@ -2007,6 +2039,7 @@ class _AppointmentRenderObject extends CustomCalendarRenderObject {
       case CalendarView.timelineWeek:
       case CalendarView.timelineWorkWeek:
       case CalendarView.timelineMonth:
+      case CalendarView.timelineCustomMonth:
         {
           _drawTimelineAppointments(canvas, size, _appointmentPainter);
         }
@@ -2966,7 +2999,7 @@ class _AppointmentRenderObject extends CustomCalendarRenderObject {
       /// 'TextWidthBasis.longestLine]` which renders the subject text out of
       /// the appointment rect, hence to overcome this we have added checked
       /// this condition and set the text width basis.
-      if (view == CalendarView.timelineMonth) {
+      if ((view == CalendarView.timelineMonth || view == CalendarView.timelineCustomMonth)) {
         _textPainter.textWidthBasis = TextWidthBasis.parent;
       }
 

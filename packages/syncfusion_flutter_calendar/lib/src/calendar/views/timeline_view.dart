@@ -1322,6 +1322,7 @@ class TimelineViewHeaderView extends CustomPainter {
   final TextPainter _dayTextPainter = TextPainter(),
       _dateTextPainter = TextPainter();
   final Paint _hoverPainter = Paint();
+  final Paint _highlightPainter = Paint();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1411,8 +1412,24 @@ class TimelineViewHeaderView extends CustomPainter {
         blackoutDates,
         currentDate,
       );
+      final bool isWeekend =
+          currentDate.weekday == DateTime.saturday ||
+          currentDate.weekday == DateTime.sunday;
+      final bool isToday = isSameDate(currentDate, today);
+      _highlightPainter.color =
+          isWeekend
+              ? timeSlotViewSettings.weekendBackgroundColor ??
+                  calendarTheme.cellBorderColor!
+              : isToday
+              ? timeSlotViewSettings.todayBackgroundColor ??
+                  calendarTheme.cellBorderColor!
+              : Colors.transparent;
+      canvas.drawRect(
+        Rect.fromLTWH(_xPosition, 0, childWidth, size.height),
+        _highlightPainter,
+      );
 
-      if (isSameDate(currentDate, today)) {
+      if (isToday) {
         dayTextStyle =
             todayTextStyle != null
                 ? calendarTheme.todayTextStyle!.copyWith(
@@ -1427,6 +1444,13 @@ class TimelineViewHeaderView extends CustomPainter {
                   color: todayTextColor,
                 )
                 : viewHeaderDateStyle.copyWith(color: todayTextColor);
+      } else if (isWeekend) {
+        dayTextStyle = viewHeaderDayStyle.copyWith(
+          color: timeSlotViewSettings.weekendTextColor ?? Colors.blueGrey,
+        );
+        dateTextStyle = viewHeaderDateStyle.copyWith(
+          color: timeSlotViewSettings.weekendTextColor ?? Colors.blueGrey,
+        );
       } else {
         dateTextStyle = viewHeaderDateStyle;
         dayTextStyle = viewHeaderDayStyle;

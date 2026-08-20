@@ -35,6 +35,10 @@ class DateTimeHelper {
         /// 6 represents the number of weeks in view, we have used this static,
         /// since timeline month doesn't support the number of weeks in view.
         return DateTime.daysPerWeek * 6;
+      case CalendarView.timelineCustomMonth:
+
+        /// 30 represents the number of days in view for timeline custom month.
+        return 30;
     }
   }
 
@@ -74,6 +78,10 @@ class DateTimeHelper {
         }
       case CalendarView.timelineMonth:
         return DateTimeHelper.getDateTimeValue(getNextMonthDate(date));
+      case CalendarView.timelineCustomMonth:
+        return DateTimeHelper.getDateTimeValue(
+          addDays(date, visibleDatesCount),
+        );
       case CalendarView.week:
       case CalendarView.timelineWeek:
         return DateTimeHelper.getDateTimeValue(
@@ -130,6 +138,10 @@ class DateTimeHelper {
         }
       case CalendarView.timelineMonth:
         return DateTimeHelper.getDateTimeValue(getPreviousMonthDate(date));
+      case CalendarView.timelineCustomMonth:
+        return DateTimeHelper.getDateTimeValue(
+          addDays(date, -visibleDatesCount),
+        );
       case CalendarView.week:
       case CalendarView.timelineWeek:
         return DateTimeHelper.getDateTimeValue(
@@ -279,6 +291,7 @@ class DateTimeHelper {
         }
         break;
       case CalendarView.timelineMonth:
+      case CalendarView.timelineCustomMonth:
         {
           final DateTime prevViewDate = DateTimeHelper.getDateTimeValue(
             addDays(visibleDates[0], -1),
@@ -366,6 +379,7 @@ class DateTimeHelper {
         }
         break;
       case CalendarView.timelineMonth:
+      case CalendarView.timelineCustomMonth:
         {
           final DateTime nextViewDate = DateTimeHelper.getDateTimeValue(
             addDays(visibleDates[visibleDates.length - 1], 1),

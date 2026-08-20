@@ -72,7 +72,11 @@ class TimeSlotViewSettings with Diagnosticable {
     this.timeRulerSize = -1,
     this.timeTextStyle,
     this.allDayPanelColor,
+    this.todayBackgroundColor,
+    this.weekendBackgroundColor,
+    this.weekendTextColor,
     this.numberOfDaysInView = -1,
+    this.timelineCustomMonthBufferDays = -2,
   }) : assert(startHour >= 0 && startHour <= 24),
        assert(endHour >= 0 && endHour <= 24),
        assert(timeIntervalHeight >= -1),
@@ -692,6 +696,30 @@ class TimeSlotViewSettings with Diagnosticable {
   ///  ```
   final int numberOfDaysInView;
 
+  /// The background color for today's date in time slot / timeline views.
+  ///
+  /// Defaults to null.
+  final Color? todayBackgroundColor;
+
+  /// The background color for weekend dates in time slot / timeline views.
+  ///
+  /// Defaults to null.
+  final Color? weekendBackgroundColor;
+
+  /// The text color for weekend dates in time slot / timeline views.
+  ///
+  /// Defaults to null.
+  final Color? weekendTextColor;
+
+  /// The number of buffer days before the current date in timeline custom
+  /// month view.
+  ///
+  /// A negative value moves the visible range start before the current date.
+  /// Defaults to `-2`.
+  ///
+  /// Used when [SfCalendar.view] is [CalendarView.timelineCustomMonth].
+  final int timelineCustomMonthBufferDays;
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) {
@@ -717,7 +745,12 @@ class TimeSlotViewSettings with Diagnosticable {
         otherStyle.dateFormat == dateFormat &&
         otherStyle.dayFormat == dayFormat &&
         otherStyle.timeRulerSize == timeRulerSize &&
-        otherStyle.timeTextStyle == timeTextStyle;
+        otherStyle.timeTextStyle == timeTextStyle &&
+        otherStyle.todayBackgroundColor == todayBackgroundColor &&
+        otherStyle.weekendBackgroundColor == weekendBackgroundColor &&
+        otherStyle.weekendTextColor == weekendTextColor &&
+        otherStyle.timelineCustomMonthBufferDays ==
+            timelineCustomMonthBufferDays;
   }
 
   @override
@@ -746,6 +779,17 @@ class TimeSlotViewSettings with Diagnosticable {
     properties.add(StringProperty('dateFormat', dateFormat));
     properties.add(StringProperty('dayFormat', dayFormat));
     properties.add(IntProperty('numberOfDaysInView', numberOfDaysInView));
+    properties.add(ColorProperty('todayBackgroundColor', todayBackgroundColor));
+    properties.add(
+      ColorProperty('weekendBackgroundColor', weekendBackgroundColor),
+    );
+    properties.add(ColorProperty('weekendTextColor', weekendTextColor));
+    properties.add(
+      IntProperty(
+        'timelineCustomMonthBufferDays',
+        timelineCustomMonthBufferDays,
+      ),
+    );
   }
 
   @override
@@ -764,6 +808,10 @@ class TimeSlotViewSettings with Diagnosticable {
       dayFormat,
       timeRulerSize,
       timeTextStyle,
+      todayBackgroundColor,
+      weekendBackgroundColor,
+      weekendTextColor,
+      timelineCustomMonthBufferDays,
     );
   }
 }

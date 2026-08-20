@@ -386,7 +386,7 @@ class CalendarViewHelper {
     SfCalendarThemeData calendarTheme,
   ) {
     Color? todayTextColor = todayHighlightColor;
-    if (todayTextColor != null && todayTextColor == Colors.transparent) {
+    if (calendarTheme.todayTextStyle!.color != null) {
       todayTextColor = calendarTheme.todayTextStyle!.color;
     }
 
@@ -446,7 +446,7 @@ class CalendarViewHelper {
     TimeSlotViewSettings settings,
     CalendarView view,
   ) {
-    if (view == CalendarView.timelineMonth) {
+    if ((view == CalendarView.timelineMonth || view == CalendarView.timelineCustomMonth)) {
       return 1;
     }
 
@@ -494,7 +494,7 @@ class CalendarViewHelper {
     double timeLabelViewWidth,
     CalendarView view,
   ) {
-    if (view == CalendarView.timelineMonth || view == CalendarView.month) {
+    if ((view == CalendarView.timelineMonth || view == CalendarView.timelineCustomMonth) || view == CalendarView.month) {
       return 0;
     }
 
@@ -514,6 +514,7 @@ class CalendarViewHelper {
       case CalendarView.schedule:
       case CalendarView.month:
       case CalendarView.timelineMonth:
+      case CalendarView.timelineCustomMonth:
         return 0;
     }
   }
@@ -538,6 +539,7 @@ class CalendarViewHelper {
       case CalendarView.timelineWeek:
       case CalendarView.timelineWorkWeek:
       case CalendarView.timelineMonth:
+      case CalendarView.timelineCustomMonth:
         return 30;
       case CalendarView.schedule:
         return 0;
@@ -724,6 +726,7 @@ class CalendarViewHelper {
       case CalendarView.timelineWeek:
       case CalendarView.timelineWorkWeek:
       case CalendarView.timelineMonth:
+      case CalendarView.timelineCustomMonth:
         return true;
       case CalendarView.day:
       case CalendarView.week:

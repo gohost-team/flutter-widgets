@@ -118,6 +118,7 @@ class AppointmentHelper {
       case CalendarView.timelineWeek:
       case CalendarView.timelineWorkWeek:
       case CalendarView.timelineMonth:
+      case CalendarView.timelineCustomMonth:
       case CalendarView.schedule:
         break;
       case CalendarView.day:
@@ -673,7 +674,7 @@ class AppointmentHelper {
     DateTime currentAppointmentEndTime = currentApp.actualEndTime;
     final DateTime appointmentStartTime = appointment.actualStartTime;
     DateTime appointmentEndTime = appointment.actualEndTime;
-    final bool isTimelineMonth = view == CalendarView.timelineMonth;
+    final bool isTimelineMonth = (view == CalendarView.timelineMonth || view == CalendarView.timelineCustomMonth);
     int minimumAppointmentMinutes =
         calendar.timeSlotViewSettings.minimumAppointmentDuration != null
             ? calendar

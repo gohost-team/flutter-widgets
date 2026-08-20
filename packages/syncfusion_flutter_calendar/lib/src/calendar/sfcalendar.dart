@@ -206,6 +206,7 @@ class SfCalendar extends StatefulWidget {
     this.allowViewNavigation = false,
     this.showCurrentTimeIndicator = true,
     this.cellEndPadding = -1,
+    this.bottomPadding = 0,
     this.viewNavigationMode = ViewNavigationMode.snap,
     this.allowedViews,
     this.specialRegions,
@@ -229,6 +230,7 @@ class SfCalendar extends StatefulWidget {
        assert(minDate == null || maxDate == null || minDate.isBefore(maxDate)),
        assert(minDate == null || maxDate == null || maxDate.isAfter(minDate)),
        assert(cellEndPadding >= -1),
+       assert(bottomPadding >= 0),
        initialDisplayDate =
            initialDisplayDate ??
            DateTime(
@@ -1042,6 +1044,12 @@ class SfCalendar extends StatefulWidget {
   ///
   /// ```
   final double cellEndPadding;
+
+  /// Extra spacing at the bottom of scrollable views (day/week/workWeek and
+  /// timeline views) so the last appointment is not obscured by overlays.
+  ///
+  /// Defaults to `0`.
+  final double bottomPadding;
 
   /// The text style for the text in the [Appointment] view in [SfCalendar].
   ///
@@ -3358,6 +3366,7 @@ class _SfCalendarState extends State<SfCalendar>
       case CalendarView.timelineWeek:
       case CalendarView.timelineWorkWeek:
       case CalendarView.timelineMonth:
+      case CalendarView.timelineCustomMonth:
         {
           final bool isResourceEnabled = CalendarViewHelper.isResourceEnabled(
             widget.dataSource,
@@ -4635,6 +4644,7 @@ class _SfCalendarState extends State<SfCalendar>
       case CalendarView.week:
       case CalendarView.workWeek:
       case CalendarView.timelineMonth:
+      case CalendarView.timelineCustomMonth:
         {
           if (isSameDate(_currentDate, _controller.displayDate) ||
               isDateWithInDateRange(
@@ -5117,7 +5127,7 @@ class _SfCalendarState extends State<SfCalendar>
     final DateTime visibleEndDate =
         _currentViewVisibleDates[_currentViewVisibleDates.length - 1];
     final bool isMonthView =
-        view == CalendarView.month || view == CalendarView.timelineMonth;
+        view == CalendarView.month || (view == CalendarView.timelineMonth || view == CalendarView.timelineCustomMonth);
     if (_selectedDate != null &&
         isDateWithInDateRange(
           visibleStartDate,
@@ -9320,11 +9330,11 @@ class _SfCalendarState extends State<SfCalendar>
             left: _isRTL ? 0.5 : resourceViewSize - 0.5,
             width: 0.5,
             top:
-                _controller.view == CalendarView.timelineMonth
+                (_controller.view == CalendarView.timelineMonth || _controller.view == CalendarView.timelineCustomMonth)
                     ? widget.headerHeight
                     : widget.headerHeight + viewHeaderHeight,
             height:
-                _controller.view == CalendarView.timelineMonth
+                (_controller.view == CalendarView.timelineMonth || _controller.view == CalendarView.timelineCustomMonth)
                     ? viewHeaderHeight
                     : timeLabelSize,
             child: verticalDivider,
@@ -9384,6 +9394,7 @@ class _SfCalendarState extends State<SfCalendar>
                         panelHeight,
                         widget.resourceViewHeaderBuilder,
                       ),
+                      SizedBox(height: widget.bottomPadding),
                     ],
                   ),
                 ),
@@ -9488,7 +9499,11 @@ class _SfCalendarState extends State<SfCalendar>
     final int index =
         (_resourcePanelScrollController!.offset + tappedPosition) ~/
         resourceItemHeight;
-    return _resourceCollection![index];
+    if (_resourceCollection == null || _resourceCollection!.isEmpty) {
+      throw StateError('Calendar resource collection is empty.');
+    }
+    final int clampedIndex = index.clamp(0, _resourceCollection!.length - 1);
+    return _resourceCollection![clampedIndex];
   }
 
   /// Adds the custom scroll view which used to produce the infinity scroll.
@@ -9832,12 +9847,12 @@ class _SfCalendarState extends State<SfCalendar>
             ),
             view:
                 _view == CalendarView.month ||
-                        _view == CalendarView.timelineMonth
+                        (_view == CalendarView.timelineMonth || _view == CalendarView.timelineCustomMonth)
                     ? DateRangePickerView.year
                     : DateRangePickerView.month,
             onViewChanged: (DateRangePickerViewChangedArgs details) {
               if ((_view != CalendarView.month &&
-                      _view != CalendarView.timelineMonth) ||
+                      _view != CalendarView.timelineMonth && _view != CalendarView.timelineCustomMonth) ||
                   details.view != DateRangePickerView.month) {
                 return;
               }
@@ -11676,6 +11691,7 @@ class _CalendarHeaderViewState extends State<_CalendarHeaderView> {
         }
         break;
       case CalendarView.timelineMonth:
+      case CalendarView.timelineCustomMonth:
         {
           return DateTimeHelper.getWeekNumberOfYear(
             widget.timelineMonthWeekNumberNotifier.value!,
@@ -11718,6 +11734,7 @@ class _CalendarHeaderViewState extends State<_CalendarHeaderView> {
         }
       case CalendarView.month:
       case CalendarView.timelineMonth:
+      case CalendarView.timelineCustomMonth:
         {
           final DateTime startDate = widget.visibleDates[0];
           final DateTime endDate =
@@ -12991,6 +13008,8 @@ Map<CalendarView, String> _getCalendarViewsText(SfLocalizations localizations) {
   calendarViews[CalendarView.timelineWeek] =
       localizations.allowedViewTimelineWeekLabel;
   calendarViews[CalendarView.timelineMonth] =
+      localizations.allowedViewTimelineMonthLabel;
+  calendarViews[CalendarView.timelineCustomMonth] =
       localizations.allowedViewTimelineMonthLabel;
   calendarViews[CalendarView.timelineWorkWeek] =
       localizations.allowedViewTimelineWorkWeekLabel;
