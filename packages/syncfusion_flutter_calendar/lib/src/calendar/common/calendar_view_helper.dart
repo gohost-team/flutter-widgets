@@ -446,7 +446,7 @@ class CalendarViewHelper {
     TimeSlotViewSettings settings,
     CalendarView view,
   ) {
-    if ((view == CalendarView.timelineMonth || view == CalendarView.timelineCustomMonth)) {
+    if (view == CalendarView.timelineMonth) {
       return 1;
     }
 
@@ -494,7 +494,7 @@ class CalendarViewHelper {
     double timeLabelViewWidth,
     CalendarView view,
   ) {
-    if ((view == CalendarView.timelineMonth || view == CalendarView.timelineCustomMonth) || view == CalendarView.month) {
+    if (view == CalendarView.timelineMonth || view == CalendarView.month) {
       return 0;
     }
 
@@ -506,6 +506,7 @@ class CalendarViewHelper {
       case CalendarView.timelineDay:
       case CalendarView.timelineWeek:
       case CalendarView.timelineWorkWeek:
+      case CalendarView.timelineCustomMonth:
         return 30;
       case CalendarView.day:
       case CalendarView.week:
@@ -514,7 +515,6 @@ class CalendarViewHelper {
       case CalendarView.schedule:
       case CalendarView.month:
       case CalendarView.timelineMonth:
-      case CalendarView.timelineCustomMonth:
         return 0;
     }
   }

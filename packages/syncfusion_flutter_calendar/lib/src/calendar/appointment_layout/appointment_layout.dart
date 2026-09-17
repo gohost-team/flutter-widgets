@@ -506,7 +506,7 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
   ) {
     if (visibleAppointments.isEmpty ||
         widget.view == CalendarView.month ||
-        (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth)) {
+        widget.view == CalendarView.timelineMonth) {
       return visibleAppointments;
     }
 
@@ -613,9 +613,14 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
         }
         break;
       case CalendarView.timelineMonth:
-      case CalendarView.timelineCustomMonth:
         {
           _updateTimelineMonthAppointmentDetails(visibleAppointments);
+        }
+        break;
+      // GoHost: custom month is an hour-based timeline spanning many days.
+      case CalendarView.timelineCustomMonth:
+        {
+          _updateTimelineAppointmentDetails(visibleAppointments);
         }
         break;
       case CalendarView.schedule:
@@ -1369,7 +1374,7 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
       return settings.timelineAppointmentHeight;
     }
 
-    if ((view == CalendarView.timelineMonth || view == CalendarView.timelineCustomMonth)) {
+    if (view == CalendarView.timelineMonth) {
       return 25;
     }
 
@@ -2999,7 +3004,7 @@ class _AppointmentRenderObject extends CustomCalendarRenderObject {
       /// 'TextWidthBasis.longestLine]` which renders the subject text out of
       /// the appointment rect, hence to overcome this we have added checked
       /// this condition and set the text width basis.
-      if ((view == CalendarView.timelineMonth || view == CalendarView.timelineCustomMonth)) {
+      if (view == CalendarView.timelineMonth) {
         _textPainter.textWidthBasis = TextWidthBasis.parent;
       }
 

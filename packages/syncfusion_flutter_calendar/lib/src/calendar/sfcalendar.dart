@@ -5127,7 +5127,7 @@ class _SfCalendarState extends State<SfCalendar>
     final DateTime visibleEndDate =
         _currentViewVisibleDates[_currentViewVisibleDates.length - 1];
     final bool isMonthView =
-        view == CalendarView.month || (view == CalendarView.timelineMonth || view == CalendarView.timelineCustomMonth);
+        view == CalendarView.month || view == CalendarView.timelineMonth;
     if (_selectedDate != null &&
         isDateWithInDateRange(
           visibleStartDate,
@@ -9330,11 +9330,11 @@ class _SfCalendarState extends State<SfCalendar>
             left: _isRTL ? 0.5 : resourceViewSize - 0.5,
             width: 0.5,
             top:
-                (_controller.view == CalendarView.timelineMonth || _controller.view == CalendarView.timelineCustomMonth)
+                _controller.view == CalendarView.timelineMonth
                     ? widget.headerHeight
                     : widget.headerHeight + viewHeaderHeight,
             height:
-                (_controller.view == CalendarView.timelineMonth || _controller.view == CalendarView.timelineCustomMonth)
+                _controller.view == CalendarView.timelineMonth
                     ? viewHeaderHeight
                     : timeLabelSize,
             child: verticalDivider,
@@ -9847,12 +9847,12 @@ class _SfCalendarState extends State<SfCalendar>
             ),
             view:
                 _view == CalendarView.month ||
-                        (_view == CalendarView.timelineMonth || _view == CalendarView.timelineCustomMonth)
+                        _view == CalendarView.timelineMonth
                     ? DateRangePickerView.year
                     : DateRangePickerView.month,
             onViewChanged: (DateRangePickerViewChangedArgs details) {
               if ((_view != CalendarView.month &&
-                      _view != CalendarView.timelineMonth && _view != CalendarView.timelineCustomMonth) ||
+                      _view != CalendarView.timelineMonth) ||
                   details.view != DateRangePickerView.month) {
                 return;
               }

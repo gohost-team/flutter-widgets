@@ -361,7 +361,7 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
     }
 
     if ((widget.view == CalendarView.month ||
-            (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth)) &&
+            widget.view == CalendarView.timelineMonth) &&
         widget.blackoutDates != oldWidget.blackoutDates) {
       _children.clear();
       if (!_animationController.isAnimating) {
@@ -486,7 +486,7 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
         _updateCalendarStateDetails.currentDate = widget.controller.displayDate;
         widget.updateCalendarState(_updateCalendarStateDetails);
         if (widget.calendar.showWeekNumber &&
-            (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth)) {
+            widget.view == CalendarView.timelineMonth) {
           widget.timelineMonthWeekNumberNotifier.value =
               widget.controller.displayDate;
         }
@@ -553,7 +553,7 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
         widget.view != CalendarView.schedule &&
         (!widget.isMobilePlatform ||
             (widget.view != CalendarView.month &&
-                widget.view != CalendarView.timelineMonth && widget.view != CalendarView.timelineCustomMonth));
+                widget.view != CalendarView.timelineMonth));
     final double viewHeaderHeight =
         isDayView
             ? 0
@@ -582,7 +582,7 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
         isResourceEnabled ? widget.calendar.resourceViewSettings.width! : 0;
     final bool isMonthView =
         widget.view == CalendarView.month ||
-        (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth);
+        widget.view == CalendarView.timelineMonth;
     final double weekNumberPanelWidth =
         CalendarViewHelper.getWeekNumberPanelWidth(
           widget.calendar.showWeekNumber,
@@ -4360,7 +4360,7 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
       }
     } else {
       final double xPosition =
-          (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth)
+          widget.view == CalendarView.timelineMonth
               ? 0
               : AppointmentHelper.timeToPosition(
                 widget.calendar,
@@ -4408,7 +4408,7 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
       /// other timeline views each column represents a given time interval,
       /// hence to update the selected date for timeline month we must add a day
       /// and for other timeline views we must add the given time interval.
-      if ((widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth)) {
+      if (widget.view == CalendarView.timelineMonth) {
         selectedDate = AppointmentHelper.addDaysWithTime(
           selectedDate,
           1,
@@ -4503,7 +4503,7 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
       }
     } else {
       final double xPosition =
-          (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth)
+          widget.view == CalendarView.timelineMonth
               ? 0
               : AppointmentHelper.timeToPosition(
                 widget.calendar,
@@ -4538,7 +4538,7 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
       /// hence to update the selected date for timeline month we must subtract
       /// a day and for other timeline views we must subtract the given time
       /// interval.
-      if ((widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth)) {
+      if (widget.view == CalendarView.timelineMonth) {
         selectedDate = AppointmentHelper.addDaysWithTime(
           selectedDate,
           -1,
@@ -4982,7 +4982,7 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
   ]) {
     final bool isMonthView =
         widget.view == CalendarView.month ||
-        (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth);
+        widget.view == CalendarView.timelineMonth;
     final int timeInterval = CalendarViewHelper.getTimeInterval(
       widget.calendar.timeSlotViewSettings,
     );
@@ -6732,7 +6732,7 @@ class _CalendarViewState extends State<_CalendarView>
   Timer? _createTimer() {
     return widget.calendar.showCurrentTimeIndicator &&
             widget.view != CalendarView.month &&
-            widget.view != CalendarView.timelineMonth && widget.view != CalendarView.timelineCustomMonth
+            widget.view != CalendarView.timelineMonth
         ? Timer.periodic(const Duration(seconds: 1), (Timer t) {
           final DateTime today = DateTime.now();
           final DateTime viewEndDate =
@@ -7057,7 +7057,7 @@ class _CalendarViewState extends State<_CalendarView>
           continue;
         }
 
-        if ((widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth)) {
+        if (widget.view == CalendarView.timelineMonth) {
           timeToPosition = _timeIntervalHeight * i;
         } else {
           timeToPosition =
@@ -7159,7 +7159,7 @@ class _CalendarViewState extends State<_CalendarView>
           continue;
         }
 
-        if ((widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth)) {
+        if (widget.view == CalendarView.timelineMonth) {
           timeToPosition = _timeIntervalHeight * i;
         } else {
           timeToPosition =
@@ -7236,7 +7236,7 @@ class _CalendarViewState extends State<_CalendarView>
 
     if (CalendarViewHelper.isTimelineView(widget.view)) {
       widget.getCalendarState(_updateCalendarStateDetails);
-      if (widget.view != CalendarView.timelineMonth && widget.view != CalendarView.timelineCustomMonth) {
+      if (widget.view != CalendarView.timelineMonth) {
         _timelineViewHeaderNotifier.value = !_timelineViewHeaderNotifier.value;
       }
 
@@ -7244,7 +7244,7 @@ class _CalendarViewState extends State<_CalendarView>
         _timelineRulerController!.jumpTo(_scrollController!.offset);
       }
 
-      if ((widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth) &&
+      if (widget.view == CalendarView.timelineMonth &&
           widget.calendar.showWeekNumber) {
         final double timeLabelWidth = CalendarViewHelper.getTimeLabelWidth(
           widget.calendar.timeSlotViewSettings.timeRulerSize,
@@ -7318,9 +7318,9 @@ class _CalendarViewState extends State<_CalendarView>
               oldWidget.calendar.timeSlotViewSettings,
             ) ||
         oldWidget.view == CalendarView.month ||
-        (oldWidget.view == CalendarView.timelineMonth || oldWidget.view == CalendarView.timelineCustomMonth) ||
-        oldWidget.view != CalendarView.timelineMonth && oldWidget.view != CalendarView.timelineCustomMonth &&
-            (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth)) {
+        oldWidget.view == CalendarView.timelineMonth ||
+        oldWidget.view != CalendarView.timelineMonth &&
+            widget.view == CalendarView.timelineMonth) {
       _horizontalLinesCount = CalendarViewHelper.getHorizontalLinesCount(
         widget.calendar.timeSlotViewSettings,
         widget.view,
@@ -8582,7 +8582,7 @@ class _CalendarViewState extends State<_CalendarView>
         _getDateFromPosition(xPosition, yPosition, timeLabelWidth)!;
     if (_resizingDetails.value.isAllDayPanel ||
         widget.view == CalendarView.month ||
-        (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth)) {
+        widget.view == CalendarView.timelineMonth) {
       resizingTime = DateTime(
         resizingTime.year,
         resizingTime.month,
@@ -8621,7 +8621,7 @@ class _CalendarViewState extends State<_CalendarView>
     }
 
     final bool isMonthView =
-        (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth) ||
+        widget.view == CalendarView.timelineMonth ||
         widget.view == CalendarView.month;
 
     final int timeInterval = CalendarViewHelper.getTimeInterval(
@@ -9526,7 +9526,7 @@ class _CalendarViewState extends State<_CalendarView>
             true,
           )!;
 
-      if ((widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth)) {
+      if (widget.view == CalendarView.timelineMonth) {
         resizingTime = DateTime(
           resizingTime.year,
           resizingTime.month,
@@ -10006,7 +10006,7 @@ class _CalendarViewState extends State<_CalendarView>
     bool isTimelineView,
   ) {
     if (!widget.calendar.showCurrentTimeIndicator ||
-        (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth)) {
+        widget.view == CalendarView.timelineMonth) {
       return const SizedBox(width: 0, height: 0);
     }
 
@@ -10035,7 +10035,7 @@ class _CalendarViewState extends State<_CalendarView>
   void _updateProgrammaticSelectedResourceIndex() {
     if (_updateCalendarStateDetails.selectedDate != null &&
         _selectedResourceIndex == -1) {
-      final bool isTimelineMonth = (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth);
+      final bool isTimelineMonth = widget.view == CalendarView.timelineMonth;
       if ((isTimelineMonth &&
               (isSameDate(
                 _updateCalendarStateDetails.selectedDate,
@@ -10535,7 +10535,7 @@ class _CalendarViewState extends State<_CalendarView>
   ]) {
     final bool isMonthView =
         widget.view == CalendarView.month ||
-        (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth);
+        widget.view == CalendarView.timelineMonth;
     if (canRaiseSelectionChanged &&
         ((isMonthView &&
                 !isSameDate(
@@ -10842,7 +10842,7 @@ class _CalendarViewState extends State<_CalendarView>
                 selectedDate,
                 timeInterval,
               ) ||
-              ((widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth) &&
+              (widget.view == CalendarView.timelineMonth &&
                   CalendarViewHelper.isDateInDateCollection(
                     widget.calendar.blackoutDates,
                     selectedDate,
@@ -11673,7 +11673,7 @@ class _CalendarViewState extends State<_CalendarView>
     if (widget.regions == null ||
         widget.regions!.isEmpty ||
         widget.view == CalendarView.month ||
-        (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth) ||
+        widget.view == CalendarView.timelineMonth ||
         selectedDate == null) {
       return true;
     }
@@ -11772,7 +11772,7 @@ class _CalendarViewState extends State<_CalendarView>
       return timeIntervalHeight;
     }
 
-    if ((view == CalendarView.timelineMonth || view == CalendarView.timelineCustomMonth) &&
+    if (view == CalendarView.timelineMonth &&
         !CalendarViewHelper.isMobileLayoutUI(width, isMobilePlatform)) {
       return 160;
     }
@@ -11967,7 +11967,7 @@ class _CalendarViewState extends State<_CalendarView>
           widget.calendar.maxDate,
           date,
         ) ||
-        ((widget.controller.view == CalendarView.timelineMonth || widget.controller.view == CalendarView.timelineCustomMonth) &&
+        (widget.controller.view == CalendarView.timelineMonth &&
             CalendarViewHelper.isDateInDateCollection(
               widget.blackoutDates,
               date,
@@ -12227,7 +12227,7 @@ class _CalendarViewState extends State<_CalendarView>
       return;
     }
 
-    if ((widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth) &&
+    if (widget.view == CalendarView.timelineMonth &&
         CalendarViewHelper.isDateInDateCollection(
           widget.blackoutDates,
           hoverDate,
@@ -12321,7 +12321,7 @@ class _CalendarViewState extends State<_CalendarView>
         (widget.view == CalendarView.month || isTimelineViews)) {
       final bool isMonthView =
           widget.view == CalendarView.month ||
-          (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth);
+          widget.view == CalendarView.timelineMonth;
       final DateTime viewStartDate = AppointmentHelper.convertToStartTime(
         widget.visibleDates[0],
       );
@@ -12697,7 +12697,7 @@ class _CalendarViewState extends State<_CalendarView>
     /// cell regions.
     final bool isMonthView =
         widget.view == CalendarView.month ||
-        (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth);
+        widget.view == CalendarView.timelineMonth;
     final int timeInterval = CalendarViewHelper.getTimeInterval(
       widget.calendar.timeSlotViewSettings,
     );
@@ -13139,7 +13139,7 @@ class _CalendarViewState extends State<_CalendarView>
     final DateTime? selectedDate = _getDateFromPosition(x, y, timeLabelWidth);
     final bool isMonthView =
         widget.view == CalendarView.month ||
-        (widget.view == CalendarView.timelineMonth || widget.view == CalendarView.timelineCustomMonth);
+        widget.view == CalendarView.timelineMonth;
     final int timeInterval = CalendarViewHelper.getTimeInterval(
       widget.calendar.timeSlotViewSettings,
     );
@@ -14094,7 +14094,7 @@ class _SelectionPainter extends CustomPainter {
       calendar.monthViewSettings.numberOfWeeksInView,
     );
     final bool isMonthView =
-        view == CalendarView.month || (view == CalendarView.timelineMonth || view == CalendarView.timelineCustomMonth);
+        view == CalendarView.month || view == CalendarView.timelineMonth;
     final int timeInterval = CalendarViewHelper.getTimeInterval(
       calendar.timeSlotViewSettings,
     );
@@ -15550,7 +15550,7 @@ class _ResizingAppointmentPainter extends CustomPainter {
     Size size,
     bool isBackwardResize,
   ) {
-    if (view == CalendarView.month || (view == CalendarView.timelineMonth || view == CalendarView.timelineCustomMonth)) {
+    if (view == CalendarView.month || view == CalendarView.timelineMonth) {
       return;
     }
 
@@ -16444,7 +16444,7 @@ class _DraggingAppointmentRenderObject extends RenderBox
 
   void _drawTimeIndicator(Canvas canvas, bool isTimelineView, Size size) {
     if (calendarView == CalendarView.month ||
-        (calendarView == CalendarView.timelineMonth || calendarView == CalendarView.timelineCustomMonth)) {
+        calendarView == CalendarView.timelineMonth) {
       return;
     }
 
