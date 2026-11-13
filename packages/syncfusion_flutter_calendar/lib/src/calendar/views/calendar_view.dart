@@ -19,6 +19,7 @@ import '../appointment_layout/allday_appointment_layout.dart';
 import '../appointment_layout/appointment_layout.dart';
 import '../common/calendar_view_helper.dart';
 import '../common/date_time_engine.dart';
+import '../common/resource_row_layout.dart';
 import '../views/day_view.dart';
 import '../views/month_view.dart';
 import '../views/timeline_view.dart';
@@ -569,15 +570,18 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
       widget.calendar.dataSource,
       widget.view,
     );
-    final double resourceItemHeight =
+    final ResourceRowLayout? resourceRowLayout =
         isResourceEnabled
-            ? CalendarViewHelper.getResourceItemHeight(
+            ? CalendarViewHelper.getResourceRowLayout(
               widget.calendar.resourceViewSettings.width!,
               widget.height - viewHeaderHeight - timeLabelWidth,
               widget.calendar.resourceViewSettings,
-              widget.calendar.dataSource!.resources!.length,
+              widget.calendar.dataSource!.resources!,
+              widget.calendar.resourceItemHeightBuilder,
             )
-            : 0;
+            : null;
+    _resourceRowLayout = resourceRowLayout;
+    final double resourceItemHeight = resourceRowLayout?.defaultHeight ?? 0;
     final double resourceViewSize =
         isResourceEnabled ? widget.calendar.resourceViewSettings.width! : 0;
     final bool isMonthView =
@@ -834,6 +838,7 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
                   widget.calendar,
                   widget.width,
                   widget.height,
+                  resourceRowLayout: resourceRowLayout,
                 ),
               ),
             ),
@@ -999,6 +1004,52 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
     }
 
     return currentState._handleTouchOnDayView(null, details);
+  }
+
+  /// Resource row layout built in the last [build]; null when the calendar has
+  /// no resource view.
+  ResourceRowLayout? _resourceRowLayout;
+
+  /// Returns the stored row layout, or a uniform one using [resourceItemHeight]
+  /// when none is stored yet.
+  ResourceRowLayout _getRowLayout(double resourceItemHeight) {
+    return _resourceRowLayout ??
+        ResourceRowLayout.uniform(
+          resourceItemHeight,
+          widget.calendar.dataSource?.resources?.length ?? 0,
+        );
+  }
+
+  /// Row layout used by the keyboard navigation. Uses the layout stored by the
+  /// last build when rows have different heights, otherwise the uniform height
+  /// computed from the widget height as before.
+  ResourceRowLayout _getKeyboardRowLayout() {
+    final ResourceRowLayout? stored = _resourceRowLayout;
+    if (stored != null && !stored.isUniform) {
+      return stored;
+    }
+    final int count = widget.calendar.dataSource!.resources!.length;
+    return ResourceRowLayout.uniform(
+      CalendarViewHelper.getResourceItemHeight(
+        widget.calendar.resourceViewSettings.width!,
+        widget.height,
+        widget.calendar.resourceViewSettings,
+        count,
+      ),
+      count,
+    );
+  }
+
+  /// Returns the distance to scroll vertically while dragging, based on the
+  /// height of the row next to the one at [pixels] in the scroll direction.
+  double _getResourceScrollStep(
+    double pixels,
+    double resourceItemHeight,
+    bool isDown,
+  ) {
+    final ResourceRowLayout rowLayout = _getRowLayout(resourceItemHeight);
+    final int row = rowLayout.indexAt(pixels);
+    return rowLayout.heightOf(isDown ? row : row - 1);
   }
 
   void _handleLongPressMove(
@@ -1679,7 +1730,14 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
                       ._timelineViewVerticalScrollController!
                       .position
                       .pixels -
-                  resourceItemHeight;
+                  _getResourceScrollStep(
+                    currentState
+                        ._timelineViewVerticalScrollController!
+                        .position
+                        .pixels,
+                    resourceItemHeight,
+                    false,
+                  );
               if (scrollPosition < 0) {
                 scrollPosition = 0;
               }
@@ -1748,7 +1806,14 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
                       ._timelineViewVerticalScrollController!
                       .position
                       .pixels +
-                  resourceItemHeight;
+                  _getResourceScrollStep(
+                    currentState
+                        ._timelineViewVerticalScrollController!
+                        .position
+                        .pixels,
+                    resourceItemHeight,
+                    true,
+                  );
               if (scrollPosition >
                   currentState
                       ._timelineViewVerticalScrollController!
@@ -4655,13 +4720,7 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
       widget.calendar.dataSource,
       widget.view,
     )) {
-      final double resourceItemHeight =
-          CalendarViewHelper.getResourceItemHeight(
-            widget.calendar.resourceViewSettings.width!,
-            widget.height,
-            widget.calendar.resourceViewSettings,
-            widget.calendar.dataSource!.resources!.length,
-          );
+      final ResourceRowLayout rowLayout = _getKeyboardRowLayout();
 
       currentViewState._selectedResourceIndex -= 1;
 
@@ -4670,11 +4729,11 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
         return selectedDate;
       }
 
-      if (currentViewState._selectedResourceIndex * resourceItemHeight <
+      if (rowLayout.topOf(currentViewState._selectedResourceIndex) <
           currentViewState._timelineViewVerticalScrollController!.offset) {
         double scrollPosition =
             currentViewState._timelineViewVerticalScrollController!.offset -
-            resourceItemHeight;
+            rowLayout.heightOf(currentViewState._selectedResourceIndex);
         scrollPosition = scrollPosition > 0 ? scrollPosition : 0;
         currentViewState._timelineViewVerticalScrollController!.jumpTo(
           scrollPosition,
@@ -4790,13 +4849,7 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
       widget.calendar.dataSource,
       widget.view,
     )) {
-      final double resourceItemHeight =
-          CalendarViewHelper.getResourceItemHeight(
-            widget.calendar.resourceViewSettings.width!,
-            widget.height,
-            widget.calendar.resourceViewSettings,
-            widget.calendar.dataSource!.resources!.length,
-          );
+      final ResourceRowLayout rowLayout = _getKeyboardRowLayout();
       if (currentViewState._selectedResourceIndex ==
               widget.calendar.dataSource!.resources!.length - 1 ||
           currentViewState._selectedResourceIndex == -1) {
@@ -4805,7 +4858,7 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
 
       currentViewState._selectedResourceIndex += 1;
 
-      if (currentViewState._selectedResourceIndex * resourceItemHeight >=
+      if (rowLayout.topOf(currentViewState._selectedResourceIndex) >=
           currentViewState._timelineViewVerticalScrollController!.offset +
               currentViewState
                   ._timelineViewVerticalScrollController!
@@ -4813,7 +4866,7 @@ class _CustomCalendarScrollViewState extends State<CustomCalendarScrollView>
                   .viewportDimension) {
         double scrollPosition =
             currentViewState._timelineViewVerticalScrollController!.offset +
-            resourceItemHeight;
+            rowLayout.heightOf(currentViewState._selectedResourceIndex);
         scrollPosition =
             scrollPosition >
                     currentViewState
@@ -6401,6 +6454,10 @@ class _CalendarView extends StatefulWidget {
 
 class _CalendarViewState extends State<_CalendarView>
     with TickerProviderStateMixin {
+  /// Resource row layout built once per build of the timeline view; null when
+  /// the view has no resources. Event handlers only read it.
+  ResourceRowLayout? _resourceRowLayout;
+
   // line count is the total time slot lines to be drawn in the view
   // line count per view is for time line view which contains the time slot
   // count for per view
@@ -7533,6 +7590,7 @@ class _CalendarViewState extends State<_CalendarView>
     double width,
     double height, [
     double? resourceItemHeight,
+    ResourceRowLayout? resourceRowLayout,
   ]) {
     final List<CalendarAppointment>? visibleAppointments =
         widget.visibleDates ==
@@ -7557,6 +7615,7 @@ class _CalendarViewState extends State<_CalendarView>
       height,
       widget.localizations,
       _getPainterProperties,
+      resourceRowLayout: resourceRowLayout,
       key: _appointmentLayoutKey,
     );
 
@@ -10066,19 +10125,26 @@ class _CalendarViewState extends State<_CalendarView>
       widget.view,
     );
     double resourceItemHeight = 0;
+    ResourceRowLayout? resourceRowLayout;
     height -= viewHeaderHeight + timeLabelSize;
     if (isResourceEnabled) {
       _updateProgrammaticSelectedResourceIndex();
       final double resourceViewSize =
           widget.calendar.resourceViewSettings.width!;
-      resourceItemHeight = CalendarViewHelper.getResourceItemHeight(
+      resourceRowLayout = CalendarViewHelper.getResourceRowLayout(
         resourceViewSize,
         widget.height - viewHeaderHeight - timeLabelSize,
         widget.calendar.resourceViewSettings,
-        widget.calendar.dataSource!.resources!.length,
+        widget.calendar.dataSource!.resources!,
+        widget.calendar.resourceItemHeightBuilder,
       );
-      height = resourceItemHeight * widget.resourceCollection!.length;
+      resourceItemHeight = resourceRowLayout.defaultHeight;
+      height =
+          resourceRowLayout.isUniform
+              ? resourceItemHeight * widget.resourceCollection!.length
+              : resourceRowLayout.totalHeight;
     }
+    _resourceRowLayout = resourceRowLayout;
     return Stack(
       children: <Widget>[
         Positioned(
@@ -10200,6 +10266,7 @@ class _CalendarViewState extends State<_CalendarView>
                                           widget.minDate,
                                           widget.maxDate,
                                           widget.blackoutDates,
+                                          resourceRowLayout: resourceRowLayout,
                                         ),
                                       ),
                                       RepaintBoundary(
@@ -10207,6 +10274,7 @@ class _CalendarViewState extends State<_CalendarView>
                                           width,
                                           height,
                                           resourceItemHeight,
+                                          resourceRowLayout,
                                         ),
                                       ),
                                     ],
@@ -10216,6 +10284,7 @@ class _CalendarViewState extends State<_CalendarView>
                                   child: CustomPaint(
                                     painter: _addSelectionView(
                                       resourceItemHeight,
+                                      resourceRowLayout,
                                     ),
                                     size: Size(width, height),
                                   ),
@@ -10584,6 +10653,10 @@ class _CalendarViewState extends State<_CalendarView>
     double viewHeaderHeight,
     double timeLabelSize,
   ) {
+    final ResourceRowLayout? storedLayout = _resourceRowLayout;
+    if (storedLayout != null) {
+      return storedLayout.indexAt(yPosition);
+    }
     final int resourceCount =
         widget.calendar.dataSource != null &&
                 widget.calendar.dataSource!.resources != null
@@ -13203,7 +13276,10 @@ class _CalendarViewState extends State<_CalendarView>
     _selectionNotifier.value = !_selectionNotifier.value;
   }
 
-  _SelectionPainter _addSelectionView([double? resourceItemHeight]) {
+  _SelectionPainter _addSelectionView([
+    double? resourceItemHeight,
+    ResourceRowLayout? resourceRowLayout,
+  ]) {
     AppointmentView? appointmentView;
     if (_selectionPainter?.appointmentView != null) {
       appointmentView = _selectionPainter!.appointmentView;
@@ -13226,6 +13302,7 @@ class _CalendarViewState extends State<_CalendarView>
       (UpdateCalendarStateDetails details) {
         _getPainterProperties(details);
       },
+      resourceRowLayout: resourceRowLayout,
     );
 
     if (appointmentView != null &&
@@ -14053,13 +14130,15 @@ class _SelectionPainter extends CustomPainter {
     this.resourceItemHeight,
     this.showWeekNumber,
     this.isMobilePlatform,
-    this.getCalendarState,
-  ) : super(repaint: repaintNotifier);
+    this.getCalendarState, {
+    this.resourceRowLayout,
+  }) : super(repaint: repaintNotifier);
 
   final SfCalendar calendar;
   final CalendarView view;
   final SfCalendarThemeData calendarTheme;
   final List<DateTime> visibleDates;
+  final ResourceRowLayout? resourceRowLayout;
   Decoration? selectionDecoration;
   DateTime? selectedDate;
   final double timeIntervalHeight;
@@ -14150,7 +14229,9 @@ class _SelectionPainter extends CustomPainter {
       /// The selection view must render on the resource area alone, when the
       /// resource enabled.
       if (isResourceEnabled && selectedResourceIndex >= 0) {
-        _cellHeight = resourceItemHeight!;
+        _cellHeight =
+            resourceRowLayout?.heightOf(selectedResourceIndex) ??
+            resourceItemHeight!;
       }
     }
 
@@ -14355,7 +14436,14 @@ class _SelectionPainter extends CustomPainter {
       return 0;
     }
 
-    return selectedResourceIndex * resourceItemHeight!;
+    return resourceRowLayout?.topOf(selectedResourceIndex) ??
+        selectedResourceIndex * resourceItemHeight!;
+  }
+
+  /// Returns the height of the resource row that holds the selected cell.
+  double _cellHeightOfSelectedResource() {
+    return resourceRowLayout?.heightOf(selectedResourceIndex) ??
+        resourceItemHeight!;
   }
 
   void _drawTimelineMonthSelection(Canvas canvas, Size size, double width) {
@@ -14382,7 +14470,7 @@ class _SelectionPainter extends CustomPainter {
         final double height =
             selectedResourceIndex == -1
                 ? size.height
-                : _yPosition + resourceItemHeight!;
+                : _yPosition + _cellHeightOfSelectedResource();
         _drawSlotSelection(width, height, canvas);
         break;
       }
@@ -14413,7 +14501,7 @@ class _SelectionPainter extends CustomPainter {
           final double height =
               selectedResourceIndex == -1
                   ? size.height
-                  : _yPosition + resourceItemHeight!;
+                  : _yPosition + _cellHeightOfSelectedResource();
           _drawSlotSelection(width, height, canvas);
           break;
         }
@@ -14472,6 +14560,7 @@ class _SelectionPainter extends CustomPainter {
         oldWidget.view != view ||
         oldWidget.visibleDates != visibleDates ||
         oldWidget.selectedResourceIndex != selectedResourceIndex ||
+        oldWidget.resourceRowLayout != resourceRowLayout ||
         oldWidget.isRTL != isRTL;
   }
 }
@@ -15848,8 +15937,9 @@ class _DraggingAppointmentWidget extends StatefulWidget {
     this.calendarTheme,
     this.calendar,
     this.width,
-    this.height,
-  );
+    this.height, {
+    this.resourceRowLayout,
+  });
 
   final ValueNotifier<_DragPaintDetails> dragDetails;
 
@@ -15872,6 +15962,8 @@ class _DraggingAppointmentWidget extends StatefulWidget {
   final double timeLabelWidth;
 
   final double resourceItemHeight;
+
+  final ResourceRowLayout? resourceRowLayout;
 
   final SfCalendarThemeData calendarTheme;
 
@@ -15958,6 +16050,7 @@ class _DraggingAppointmentState extends State<_DraggingAppointmentWidget> {
       widget.calendarTheme,
       widget.width,
       widget.height,
+      resourceRowLayout: widget.resourceRowLayout,
       child: child,
     );
   }
@@ -15981,6 +16074,7 @@ class _DraggingAppointmentRenderObjectWidget
     this.calendarTheme,
     this.width,
     this.height, {
+    this.resourceRowLayout,
     Widget? child,
   }) : super(child: child);
   final _DragPaintDetails dragDetails;
@@ -16005,6 +16099,8 @@ class _DraggingAppointmentRenderObjectWidget
 
   final double resourceItemHeight;
 
+  final ResourceRowLayout? resourceRowLayout;
+
   final SfCalendarThemeData calendarTheme;
 
   final double width;
@@ -16028,6 +16124,7 @@ class _DraggingAppointmentRenderObjectWidget
       calendarTheme,
       width,
       height,
+      resourceRowLayout: resourceRowLayout,
     );
   }
 
@@ -16048,6 +16145,7 @@ class _DraggingAppointmentRenderObjectWidget
       ..viewHeaderHeight = viewHeaderHeight
       ..timeLabelWidth = timeLabelWidth
       ..resourceItemHeight = resourceItemHeight
+      ..resourceRowLayout = resourceRowLayout
       ..calendarTheme = calendarTheme
       ..width = width
       ..height = height;
@@ -16070,8 +16168,9 @@ class _DraggingAppointmentRenderObject extends RenderBox
     this._resourceItemHeight,
     this._calendarTheme,
     this._width,
-    this._height,
-  );
+    this._height, {
+    ResourceRowLayout? resourceRowLayout,
+  }) : _resourceRowLayout = resourceRowLayout;
 
   double _width;
 
@@ -16268,6 +16367,23 @@ class _DraggingAppointmentRenderObject extends RenderBox
     }
 
     _timeLabelWidth = value;
+    if (child == null) {
+      markNeedsPaint();
+    } else {
+      markNeedsLayout();
+    }
+  }
+
+  ResourceRowLayout? _resourceRowLayout;
+
+  ResourceRowLayout? get resourceRowLayout => _resourceRowLayout;
+
+  set resourceRowLayout(ResourceRowLayout? value) {
+    if (_resourceRowLayout == value) {
+      return;
+    }
+
+    _resourceRowLayout = value;
     if (child == null) {
       markNeedsPaint();
     } else {

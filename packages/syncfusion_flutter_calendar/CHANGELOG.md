@@ -1,3 +1,9 @@
+## GoHost v1.0.11
+
+**Features**
+
+* `SfCalendar.resourceItemHeightBuilder`: per-resource row height in timeline views with resources (returns `null` to keep the shared height). Layout, hit testing, scrolling, selection and drag use the same per-row offsets; without a builder the layout is unchanged (gohost-team/go-helmmetry#3806).
+
 ## Unreleased
 
 **Bugs**
