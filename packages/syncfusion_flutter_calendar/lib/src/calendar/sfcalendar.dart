@@ -25,6 +25,7 @@ import 'common/calendar_view_helper.dart';
 import 'common/date_time_engine.dart';
 import 'common/enums.dart';
 import 'common/event_args.dart';
+import 'common/resource_row_layout.dart';
 import 'resource_view/calendar_resource.dart';
 import 'resource_view/resource_view.dart';
 import 'settings/drag_and_drop_settings.dart';
@@ -2728,6 +2729,12 @@ class SfCalendar extends StatefulWidget {
       ),
     );
     properties.add(
+      DiagnosticsProperty<ResourceItemHeightBuilder>(
+        'resourceItemHeightBuilder',
+        resourceItemHeightBuilder,
+      ),
+    );
+    properties.add(
       DiagnosticsProperty<bool>('allowDragAndDrop', allowDragAndDrop),
     );
     properties.add(
@@ -3406,17 +3413,18 @@ class _SfCalendarState extends State<SfCalendar>
             if (updatedPosition.dy < top) {
               return null;
             }
-            final double resourceItemHeight =
-                CalendarViewHelper.getResourceItemHeight(
+            final ResourceRowLayout resourceRowLayout =
+                CalendarViewHelper.getResourceRowLayout(
                   resourceViewSize,
                   _minHeight - top,
                   widget.resourceViewSettings,
-                  _resourceCollection!.length,
+                  _resourceCollection!,
+                  widget.resourceItemHeightBuilder,
                 );
 
             final CalendarResource resource = _getTappedResource(
               updatedPosition.dy - top,
-              resourceItemHeight,
+              resourceRowLayout,
             );
             final List<dynamic> resourceAppointments =
                 _getSelectedResourceAppointments(resource);
@@ -9320,13 +9328,16 @@ class _SfCalendarState extends State<SfCalendar>
       _view,
     );
     final double top = viewHeaderHeight + timeLabelSize;
-    final double resourceItemHeight = CalendarViewHelper.getResourceItemHeight(
-      resourceViewSize,
-      height - top,
-      widget.resourceViewSettings,
-      _resourceCollection!.length,
-    );
-    final double panelHeight = resourceItemHeight * _resourceCollection!.length;
+    final ResourceRowLayout resourceRowLayout =
+        CalendarViewHelper.getResourceRowLayout(
+          resourceViewSize,
+          height - top,
+          widget.resourceViewSettings,
+          _resourceCollection!,
+          widget.resourceItemHeightBuilder,
+        );
+    final double resourceItemHeight = resourceRowLayout.defaultHeight;
+    final double panelHeight = resourceRowLayout.totalHeight;
 
     final Widget verticalDivider = VerticalDivider(
       width: 0.5,
@@ -9408,18 +9419,19 @@ class _SfCalendarState extends State<SfCalendar>
                         resourceViewSize,
                         panelHeight,
                         widget.resourceViewHeaderBuilder,
+                        resourceRowLayout: resourceRowLayout,
                       ),
                       SizedBox(height: widget.bottomPadding),
                     ],
                   ),
                 ),
                 onTapUp: (TapUpDetails details) {
-                  _handleOnTapForResourcePanel(details, resourceItemHeight);
+                  _handleOnTapForResourcePanel(details, resourceRowLayout);
                 },
                 onLongPressStart: (LongPressStartDetails details) {
                   _handleOnLongPressForResourcePanel(
                     details,
-                    resourceItemHeight,
+                    resourceRowLayout,
                   );
                 },
               ),
@@ -9434,7 +9446,7 @@ class _SfCalendarState extends State<SfCalendar>
   /// panel is long pressed in [SfCalendar].
   void _handleOnLongPressForResourcePanel(
     LongPressStartDetails details,
-    double resourceItemHeight,
+    ResourceRowLayout resourceRowLayout,
   ) {
     if (!CalendarViewHelper.shouldRaiseCalendarLongPressCallback(
       widget.onLongPress,
@@ -9444,7 +9456,7 @@ class _SfCalendarState extends State<SfCalendar>
 
     final CalendarResource tappedResource = _getTappedResource(
       details.localPosition.dy,
-      resourceItemHeight,
+      resourceRowLayout,
     );
     final List<dynamic> resourceAppointments = _getSelectedResourceAppointments(
       tappedResource,
@@ -9462,7 +9474,7 @@ class _SfCalendarState extends State<SfCalendar>
   /// is tapped in [SfCalendar].
   void _handleOnTapForResourcePanel(
     TapUpDetails details,
-    double resourceItemHeight,
+    ResourceRowLayout resourceRowLayout,
   ) {
     if (!CalendarViewHelper.shouldRaiseCalendarTapCallback(widget.onTap)) {
       return;
@@ -9470,7 +9482,7 @@ class _SfCalendarState extends State<SfCalendar>
 
     final CalendarResource tappedResource = _getTappedResource(
       details.localPosition.dy,
-      resourceItemHeight,
+      resourceRowLayout,
     );
     final List<dynamic> resourceAppointments = _getSelectedResourceAppointments(
       tappedResource,
@@ -9509,11 +9521,11 @@ class _SfCalendarState extends State<SfCalendar>
   /// Returns the tapped resource details, based on the tapped position.
   CalendarResource _getTappedResource(
     double tappedPosition,
-    double resourceItemHeight,
+    ResourceRowLayout resourceRowLayout,
   ) {
-    final int index =
-        (_resourcePanelScrollController!.offset + tappedPosition) ~/
-        resourceItemHeight;
+    final int index = resourceRowLayout.indexAt(
+      _resourcePanelScrollController!.offset + tappedPosition,
+    );
     if (_resourceCollection == null || _resourceCollection!.isEmpty) {
       throw StateError('Calendar resource collection is empty.');
     }
