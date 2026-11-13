@@ -215,6 +215,7 @@ class SfCalendar extends StatefulWidget {
     this.showWeekNumber = false,
     this.weekNumberStyle = const WeekNumberStyle(),
     this.resourceViewHeaderBuilder,
+    this.resourceItemHeightBuilder,
     this.allowAppointmentResize = false,
     this.onAppointmentResizeStart,
     this.onAppointmentResizeUpdate,
@@ -2054,6 +2055,20 @@ class SfCalendar extends StatefulWidget {
   /// }
   /// ```
   final ResourceViewHeaderBuilder? resourceViewHeaderBuilder;
+
+  /// Defines the builder that returns the height of an individual resource
+  /// row in the timeline views.
+  ///
+  /// The builder receives the resource, its index in
+  /// [CalendarDataSource.resources] and the common row height calculated from
+  /// [resourceViewSettings]. Returning null (or a value that is not finite or
+  /// is less than or equal to zero) uses that common height for the row.
+  ///
+  /// Defaults to null, which gives every resource row the same height.
+  ///
+  /// See also:
+  /// * [resourceViewSettings], to customize the resource view in the calendar.
+  final ResourceItemHeightBuilder? resourceItemHeightBuilder;
 
   /// Allows to drag and drop the appointment, to reschedule this into
   /// new date time.
