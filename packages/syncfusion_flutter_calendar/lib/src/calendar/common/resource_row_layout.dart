@@ -39,7 +39,10 @@ class ResourceRowLayout {
     bool hasOverride = false;
     for (int i = 0; i < count; i++) {
       final double? value = builder(resources[i], i, defaultHeight);
-      if (value == null || !value.isFinite || value <= 0) {
+      if (value == null ||
+          !value.isFinite ||
+          value <= 0 ||
+          value == defaultHeight) {
         continue;
       }
 

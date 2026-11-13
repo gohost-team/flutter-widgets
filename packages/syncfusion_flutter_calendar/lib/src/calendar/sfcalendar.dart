@@ -2065,6 +2065,9 @@ class SfCalendar extends StatefulWidget {
   /// [resourceViewSettings]. Returning null (or a value that is not finite or
   /// is less than or equal to zero) uses that common height for the row.
   ///
+  /// The builder is called for every resource on each build of the timeline
+  /// views, so it must be cheap and pure (no side effects).
+  ///
   /// Defaults to null, which gives every resource row the same height.
   ///
   /// See also:
@@ -2770,6 +2773,9 @@ class _SfCalendarState extends State<SfCalendar>
   /// Used to get the scrolled position to update the header value.
   ScrollController? _agendaScrollController, _resourcePanelScrollController;
 
+  /// Row layout of the resource panel, built once per build of the panel.
+  ResourceRowLayout? _resourceRowLayout;
+
   late ValueNotifier<DateTime?> _agendaSelectedDate,
       _timelineMonthWeekNumberNotifier;
   ValueNotifier<DateTime?> _headerUpdateNotifier = ValueNotifier<DateTime?>(
@@ -3413,7 +3419,10 @@ class _SfCalendarState extends State<SfCalendar>
             if (updatedPosition.dy < top) {
               return null;
             }
+            // Reuse the layout built for the resource panel; only build one
+            // (calling the builder) when the panel has not been built yet.
             final ResourceRowLayout resourceRowLayout =
+                _resourceRowLayout ??
                 CalendarViewHelper.getResourceRowLayout(
                   resourceViewSize,
                   _minHeight - top,
@@ -9336,6 +9345,7 @@ class _SfCalendarState extends State<SfCalendar>
           _resourceCollection!,
           widget.resourceItemHeightBuilder,
         );
+    _resourceRowLayout = resourceRowLayout;
     final double resourceItemHeight = resourceRowLayout.defaultHeight;
     final double panelHeight = resourceRowLayout.totalHeight;
 

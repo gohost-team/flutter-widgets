@@ -275,6 +275,39 @@ void main() {
         expect(taps, isNotEmpty);
         expect(taps.last.resource?.id, 'r1');
       });
+          testWidgets('builder: vùng cuộn dọc = tổng chiều cao các hàng', (
+        WidgetTester tester,
+      ) async {
+        List<double> verticalExtents() => tester
+            .stateList<ScrollableState>(find.byType(Scrollable))
+            .where((ScrollableState s) => s.position.axis == Axis.vertical)
+            .map(
+              (ScrollableState s) =>
+                  s.position.maxScrollExtent + s.position.viewportDimension,
+            )
+            .toList();
+
+        final double h = await _measureDefaultHeight(tester, view, day);
+        final List<double> uniform = verticalExtents();
+        await _pumpCalendar(
+          tester,
+          view: view,
+          day: day,
+          heightBuilder: (CalendarResource r, int index, double d) =>
+              index == _tallIndex ? d * _tallFactor : null,
+        );
+        final List<double> variable = verticalExtents();
+
+        // Mọi vùng cuộn dọc (panel resource, timeline) giãn đúng theo tổng
+        // chiều cao hàng → hàng cuối cuộn tới được và hai bên vẫn đồng bộ.
+        final double ratio =
+            (h * (_resourceCount - 1) + h * _tallFactor) / (h * _resourceCount);
+        expect(uniform, isNotEmpty);
+        expect(variable.length, uniform.length);
+        for (int i = 0; i < uniform.length; i++) {
+          expect(variable[i], closeTo(uniform[i] * ratio, 0.5), reason: '#$i');
+        }
+      });
     });
   }
 }
