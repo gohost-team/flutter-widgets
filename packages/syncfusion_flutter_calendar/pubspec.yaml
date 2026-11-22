@@ -35,3 +35,7 @@ dependencies:
       
   syncfusion_localizations:
     path: ../syncfusion_localizations
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
