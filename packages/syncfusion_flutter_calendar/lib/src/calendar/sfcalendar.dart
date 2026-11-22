@@ -2885,7 +2885,12 @@ class _SfCalendarState extends State<SfCalendar>
     _showHeader = false;
     _calendarViewWidth = 0;
     initializeDateFormatting();
-    _loadDataBase().then((bool value) => _getAppointment());
+    _loadDataBase().then((bool value) {
+      if (!mounted) {
+        return;
+      }
+      _getAppointment();
+    });
     _agendaDateNotifier = ValueNotifier<ScheduleViewHoveringDetails?>(null);
     _agendaViewNotifier = ValueNotifier<ScheduleViewHoveringDetails?>(null);
     _resourceImageNotifier = ValueNotifier<bool>(false);
@@ -3044,6 +3049,9 @@ class _SfCalendarState extends State<SfCalendar>
       _backwardWidgetHeights.clear();
       _forwardWidgetHeights.clear();
       WidgetsBinding.instance.addPostFrameCallback((Duration timeStamp) {
+        if (!mounted) {
+          return;
+        }
         _handleScheduleViewScrolled();
       });
     }
@@ -4724,6 +4732,9 @@ class _SfCalendarState extends State<SfCalendar>
 
     if (_isNeedLoadMore || _isScheduleStartLoadMore) {
       SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
+        if (!mounted) {
+          return;
+        }
         setState(() {
           _isNeedLoadMore = false;
           _isScheduleStartLoadMore = false;
@@ -5074,6 +5085,9 @@ class _SfCalendarState extends State<SfCalendar>
   ) {
     if (_view == CalendarView.schedule) {
       SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
+        if (!mounted) {
+          return;
+        }
         setState(() {
           /// Update the view when the appointment collection changed.
         });
@@ -5094,6 +5108,9 @@ class _SfCalendarState extends State<SfCalendar>
     /// because time label view needs the top position.
     _updateAllDayAppointment();
     SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
         /// Update the UI.
       });
@@ -11502,6 +11519,9 @@ class _CalendarHeaderViewState extends State<_CalendarHeaderView> {
 
     // To avoid the unnecessary build while the timeline month view building
     SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
+      if (!mounted) {
+        return;
+      }
       setState(() {});
     });
   }
