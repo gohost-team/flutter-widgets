@@ -7011,6 +7011,9 @@ class _CalendarViewState extends State<_CalendarView>
 
   void _scrollToPosition() {
     SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _scrollController == null) {
+        return;
+      }
       if (widget.view == CalendarView.month) {
         return;
       }
@@ -7130,6 +7133,9 @@ class _CalendarViewState extends State<_CalendarView>
 
     /// Update the scrolled position after the widget generated.
     SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _scrollController == null) {
+        return;
+      }
       _scrollController!.jumpTo(_getPositionFromDate(scrolledDate));
     });
   }
