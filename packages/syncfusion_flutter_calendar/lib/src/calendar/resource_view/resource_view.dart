@@ -4,6 +4,7 @@ import 'package:syncfusion_flutter_core/theme.dart';
 
 import '../../../calendar.dart';
 import '../common/calendar_view_helper.dart';
+import '../common/resource_row_layout.dart';
 
 /// Used to hold the resource view on all timeline views.
 class ResourceViewWidget extends StatefulWidget {
@@ -24,6 +25,7 @@ class ResourceViewWidget extends StatefulWidget {
     this.width,
     this.panelHeight,
     this.resourceViewHeaderBuilder, {
+    this.resourceRowLayout,
     super.key,
   });
 
@@ -35,6 +37,10 @@ class ResourceViewWidget extends StatefulWidget {
 
   /// Defines the item height of the resource view.
   final double resourceItemHeight;
+
+  /// Defines the layout (per row heights) of the resource rows. When null, all
+  /// the rows use [resourceItemHeight].
+  final ResourceRowLayout? resourceRowLayout;
 
   /// Defines the border color of the resource cell.
   final Color? cellBorderColor;
@@ -81,6 +87,12 @@ class _ResourceViewWidgetState extends State<ResourceViewWidget> {
     if (widget.resourceViewHeaderBuilder != null) {
       double yPosition = 0;
       final int resourceLength = widget.resources!.length;
+      final ResourceRowLayout rowLayout =
+          widget.resourceRowLayout ??
+          ResourceRowLayout.uniform(
+            widget.resourceItemHeight,
+            resourceLength,
+          );
       for (int i = 0; i < resourceLength; i++) {
         final CalendarResource currentResource = widget.resources![i];
         final Widget child = widget.resourceViewHeaderBuilder!(
@@ -91,12 +103,12 @@ class _ResourceViewWidgetState extends State<ResourceViewWidget> {
               0,
               yPosition,
               widget.width,
-              widget.resourceItemHeight,
+              rowLayout.heightOf(i),
             ),
           ),
         );
         children.add(RepaintBoundary(child: child));
-        yPosition += widget.resourceItemHeight;
+        yPosition += rowLayout.heightOf(i);
       }
     }
 
@@ -114,6 +126,7 @@ class _ResourceViewWidgetState extends State<ResourceViewWidget> {
       widget.imagePainterCollection,
       widget.width,
       widget.panelHeight,
+      resourceRowLayout: widget.resourceRowLayout,
       children: children,
     );
   }
@@ -134,12 +147,14 @@ class _ResourceViewRenderObjectWidget extends MultiChildRenderObjectWidget {
     this.imagePainterCollection,
     this.width,
     this.panelHeight, {
+    this.resourceRowLayout,
     List<Widget> children = const <Widget>[],
   }) : super(children: children);
 
   final List<CalendarResource>? resources;
   final ResourceViewSettings resourceViewSettings;
   final double resourceItemHeight;
+  final ResourceRowLayout? resourceRowLayout;
   final Color? cellBorderColor;
   final SfCalendarThemeData calendarTheme;
   final ThemeData themeData;
@@ -167,6 +182,7 @@ class _ResourceViewRenderObjectWidget extends MultiChildRenderObjectWidget {
       imagePainterCollection,
       width,
       panelHeight,
+      resourceRowLayout: resourceRowLayout,
     );
   }
 
@@ -179,6 +195,7 @@ class _ResourceViewRenderObjectWidget extends MultiChildRenderObjectWidget {
       ..resources = resources
       ..resourceViewSettings = resourceViewSettings
       ..resourceItemHeight = resourceItemHeight
+      ..resourceRowLayout = resourceRowLayout
       ..cellBorderColor = cellBorderColor
       ..calendarTheme = calendarTheme
       ..themeData = themeData
@@ -206,8 +223,9 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
     this._mouseHoverPosition,
     this._imagePainterCollection,
     this._width,
-    this._panelHeight,
-  );
+    this._panelHeight, {
+    ResourceRowLayout? resourceRowLayout,
+  }) : _resourceRowLayout = resourceRowLayout;
 
   List<CalendarResource>? _resources;
 
@@ -255,6 +273,23 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
       markNeedsLayout();
     }
   }
+
+  ResourceRowLayout? _resourceRowLayout;
+
+  ResourceRowLayout? get resourceRowLayout => _resourceRowLayout;
+
+  set resourceRowLayout(ResourceRowLayout? value) {
+    if (_resourceRowLayout == value) {
+      return;
+    }
+
+    _resourceRowLayout = value;
+    markNeedsLayout();
+  }
+
+  ResourceRowLayout get _rowLayout =>
+      resourceRowLayout ??
+      ResourceRowLayout.uniform(resourceItemHeight, resources?.length ?? 0);
 
   Color? _cellBorderColor;
 
@@ -434,15 +469,19 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
       widgetSize.height.isInfinite ? panelHeight : widgetSize.height,
     );
 
+    final ResourceRowLayout rowLayout = _rowLayout;
+    int index = 0;
     for (dynamic child = firstChild; child != null; child = childAfter(child)) {
+      final double rowHeight = rowLayout.heightOf(index);
       child.layout(
         constraints.copyWith(
           minWidth: width,
-          minHeight: resourceItemHeight,
+          minHeight: rowHeight,
           maxWidth: width,
-          maxHeight: resourceItemHeight,
+          maxHeight: rowHeight,
         ),
       );
+      index++;
     }
   }
 
@@ -456,6 +495,7 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
       double yPosition = 0;
       RenderBox? child = firstChild;
       final int resourceLength = resources!.length;
+      final ResourceRowLayout rowLayout = _rowLayout;
       for (int i = 0; i < resourceLength; i++) {
         context.paintChild(child!, Offset(0, yPosition));
         child = childAfter(child);
@@ -466,10 +506,16 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
                   ? Colors.white
                   : Colors.black87)
               .withValues(alpha: 0.04);
-          _addHovering(context.canvas, size, yPosition, resourceHoveringColor);
+          _addHovering(
+            context.canvas,
+            size,
+            yPosition,
+            resourceHoveringColor,
+            rowLayout.heightOf(i),
+          );
         }
 
-        yPosition += resourceItemHeight;
+        yPosition += rowLayout.heightOf(i);
       }
     }
   }
@@ -484,14 +530,9 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
     /// The circle width.
     final double actualItemWidth = size.width * 0.80;
 
-    /// The circle height.
-    final double actualItemHeight = resourceItemHeight * 0.80;
+    final ResourceRowLayout rowLayout = _rowLayout;
     double yPosition = 0;
     _circlePainter.isAntiAlias = true;
-    final double radius =
-        actualItemHeight < actualItemWidth
-            ? actualItemHeight / 2
-            : actualItemWidth / 2;
     final Color resourceCellBorderColor =
         cellBorderColor ?? calendarTheme.cellBorderColor!;
     final Color resourceHoveringColor = (themeData.brightness == Brightness.dark
@@ -513,6 +554,14 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
       for (int i = 0; i < count; i++) {
         canvas.save();
         final CalendarResource resource = resources![i];
+        final double rowHeight = rowLayout.heightOf(i);
+
+        /// The circle height.
+        final double actualItemHeight = rowHeight * 0.80;
+        final double radius =
+            actualItemHeight < actualItemWidth
+                ? actualItemHeight / 2
+                : actualItemWidth / 2;
         _drawResourceBorder(
           resource,
           canvas,
@@ -520,6 +569,7 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
           actualItemHeight,
           yPosition,
           radius,
+          rowHeight,
         );
         _drawDisplayName(
           resource,
@@ -529,6 +579,7 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
           yPosition,
           actualItemHeight,
           radius,
+          rowHeight,
         );
         _circlePainter.style = PaintingStyle.fill;
         _drawInnerCircle(
@@ -549,16 +600,30 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
         );
 
         if (mouseHoverPosition != null) {
-          _addHovering(canvas, size, yPosition, resourceHoveringColor);
+          _addHovering(
+            canvas,
+            size,
+            yPosition,
+            resourceHoveringColor,
+            rowHeight,
+          );
         }
 
-        yPosition += resourceItemHeight;
+        yPosition += rowHeight;
         canvas.restore();
       }
     } else {
       for (int i = 0; i < count; i++) {
         final CalendarResource resource = resources![i];
-        _drawResourceBackground(canvas, size, resource, yPosition);
+        final double rowHeight = rowLayout.heightOf(i);
+
+        /// The circle height.
+        final double actualItemHeight = rowHeight * 0.80;
+        final double radius =
+            actualItemHeight < actualItemWidth
+                ? actualItemHeight / 2
+                : actualItemWidth / 2;
+        _drawResourceBackground(canvas, size, resource, yPosition, rowHeight);
         _drawDisplayName(
           resource,
           displayNameTextStyle,
@@ -567,9 +632,16 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
           yPosition,
           actualItemHeight,
           radius,
+          rowHeight,
         );
-        _addHovering(canvas, size, yPosition, resourceHoveringColor);
-        yPosition += resourceItemHeight;
+        _addHovering(
+          canvas,
+          size,
+          yPosition,
+          resourceHoveringColor,
+          rowHeight,
+        );
+        yPosition += rowHeight;
       }
     }
   }
@@ -579,15 +651,16 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
     Size size,
     double yPosition,
     Color resourceHoveringColor,
+    double rowHeight,
   ) {
     if (mouseHoverPosition != null &&
         mouseHoverPosition!.dy > yPosition &&
-        mouseHoverPosition!.dy < (yPosition + resourceItemHeight)) {
+        mouseHoverPosition!.dy < (yPosition + rowHeight)) {
       _circlePainter.style = PaintingStyle.fill;
       _circlePainter.color = resourceHoveringColor;
       const double padding = 0.5;
       canvas.drawRect(
-        Rect.fromLTWH(0, yPosition, size.width, resourceItemHeight - padding),
+        Rect.fromLTWH(0, yPosition, size.width, rowHeight - padding),
         _circlePainter,
       );
     }
@@ -598,12 +671,13 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
     Size size,
     CalendarResource resource,
     double yPosition,
+    double rowHeight,
   ) {
     const double padding = 0.5;
     _circlePainter.color = resource.color;
     _circlePainter.style = PaintingStyle.fill;
     canvas.drawRect(
-      Rect.fromLTWH(0, yPosition, size.width, resourceItemHeight - padding),
+      Rect.fromLTWH(0, yPosition, size.width, rowHeight - padding),
       _circlePainter,
     );
   }
@@ -625,12 +699,11 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
     double actualItemHeight,
     double yPosition,
     double radius,
+    double rowHeight,
   ) {
     /// When the large text size given, the text must be cliped instead of
     /// overflow into next resource view, hence cliped the canvas.
-    canvas.clipRect(
-      Rect.fromLTWH(0, yPosition, size.width, resourceItemHeight),
-    );
+    canvas.clipRect(Rect.fromLTWH(0, yPosition, size.width, rowHeight));
     _circlePainter.color = resource.color;
     _circlePainter.strokeWidth = _borderThickness;
     _circlePainter.style = PaintingStyle.stroke;
@@ -653,6 +726,7 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
     double yPosition,
     double actualItemHeight,
     double radius,
+    double rowHeight,
   ) {
     final TextSpan span = TextSpan(
       text: resource.displayName,
@@ -667,7 +741,7 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
                 _borderThickness +
                 radius +
                 (_borderThickness / 2)
-            : yPosition + ((resourceItemHeight - _namePainter.height) / 2);
+            : yPosition + ((rowHeight - _namePainter.height) / 2);
     _namePainter.paint(canvas, Offset(startXPosition, startYPosition));
   }
 
@@ -802,18 +876,19 @@ class _ResourceViewRenderObject extends CustomCalendarRenderObject {
       return semanticsBuilder;
     }
     double top = 0;
+    final ResourceRowLayout rowLayout = _rowLayout;
     for (int j = 0; j < resources!.length; j++) {
       final CalendarResource resource = resources![j];
       semanticsBuilder.add(
         CustomPainterSemantics(
-          rect: Rect.fromLTWH(0, top, size.width, resourceItemHeight),
+          rect: Rect.fromLTWH(0, top, size.width, rowLayout.heightOf(j)),
           properties: SemanticsProperties(
             label: resource.displayName + resource.id.toString(),
             textDirection: TextDirection.ltr,
           ),
         ),
       );
-      top += resourceItemHeight;
+      top += rowLayout.heightOf(j);
     }
 
     return semanticsBuilder;

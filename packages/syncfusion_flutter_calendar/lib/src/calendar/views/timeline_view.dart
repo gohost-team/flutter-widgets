@@ -10,6 +10,7 @@ import '../appointment_engine/appointment_helper.dart';
 import '../common/calendar_view_helper.dart';
 import '../common/date_time_engine.dart';
 import '../common/event_args.dart';
+import '../common/resource_row_layout.dart';
 import '../resource_view/calendar_resource.dart';
 import '../settings/time_slot_view_settings.dart';
 import '../settings/view_header_style.dart';
@@ -40,6 +41,7 @@ class TimelineWidget extends StatefulWidget {
     this.minDate,
     this.maxDate,
     this.blackoutDates, {
+    this.resourceRowLayout,
     super.key,
   });
 
@@ -78,6 +80,10 @@ class TimelineWidget extends StatefulWidget {
 
   /// Defines the resource view item height.
   final double resourceItemHeight;
+
+  /// Defines the layout (per row heights) of the resource rows. When null, all
+  /// the rows use [resourceItemHeight].
+  final ResourceRowLayout? resourceRowLayout;
 
   /// Holds the resource collection used to draw the time slots based on
   /// resource value.
@@ -129,6 +135,7 @@ class _TimelineWidgetState extends State<TimelineWidget> {
         widget.timeSlotViewSettings != oldWidget.timeSlotViewSettings ||
         widget.isRTL != oldWidget.isRTL ||
         widget.resourceItemHeight != oldWidget.resourceItemHeight ||
+        widget.resourceRowLayout != oldWidget.resourceRowLayout ||
         widget.resourceCollection != oldWidget.resourceCollection ||
         widget.width != oldWidget.width ||
         widget.height != oldWidget.height ||
@@ -187,6 +194,7 @@ class _TimelineWidgetState extends State<TimelineWidget> {
       widget.minDate,
       widget.maxDate,
       widget.blackoutDates,
+      resourceRowLayout: widget.resourceRowLayout,
       widgets: _children,
     );
   }
@@ -332,8 +340,14 @@ class _TimelineWidgetState extends State<TimelineWidget> {
             widget.resourceCollection,
             region.resourceIds![i],
           );
-          topPosition = index * widget.resourceItemHeight;
-          bottomPosition = topPosition + widget.resourceItemHeight;
+          final ResourceRowLayout rowLayout =
+              widget.resourceRowLayout ??
+              ResourceRowLayout.uniform(
+                widget.resourceItemHeight,
+                widget.resourceCollection?.length ?? 0,
+              );
+          topPosition = rowLayout.topOf(index);
+          bottomPosition = topPosition + rowLayout.heightOf(index);
           _updateSpecialRegionRect(
             region,
             startPosition,
@@ -408,6 +422,7 @@ class _TimelineRenderWidget extends MultiChildRenderObjectWidget {
     this.minDate,
     this.maxDate,
     this.blackoutDates, {
+    this.resourceRowLayout,
     List<Widget> widgets = const <Widget>[],
   }) : super(children: widgets);
 
@@ -423,6 +438,7 @@ class _TimelineRenderWidget extends MultiChildRenderObjectWidget {
   final ScrollController scrollController;
   final List<CalendarTimeRegion>? specialRegion;
   final double resourceItemHeight;
+  final ResourceRowLayout? resourceRowLayout;
   final List<CalendarResource>? resourceCollection;
   final double textScaleFactor;
   final bool isMobilePlatform;
@@ -457,6 +473,7 @@ class _TimelineRenderWidget extends MultiChildRenderObjectWidget {
       minDate,
       maxDate,
       blackoutDates,
+      resourceRowLayout: resourceRowLayout,
     );
   }
 
@@ -478,6 +495,7 @@ class _TimelineRenderWidget extends MultiChildRenderObjectWidget {
       ..scrollController = scrollController
       ..specialRegion = specialRegion
       ..resourceItemHeight = resourceItemHeight
+      ..resourceRowLayout = resourceRowLayout
       ..resourceCollection = resourceCollection
       ..textScaleFactor = textScaleFactor
       ..isMobilePlatform = isMobilePlatform
@@ -512,8 +530,9 @@ class _TimelineRenderObject extends CustomCalendarRenderObject {
     this.specialRegionBounds,
     this._minDate,
     this._maxDate,
-    this._blackoutDates,
-  );
+    this._blackoutDates, {
+    ResourceRowLayout? resourceRowLayout,
+  }) : _resourceRowLayout = resourceRowLayout;
 
   double _horizontalLinesCountPerView;
 
@@ -637,6 +656,30 @@ class _TimelineRenderObject extends CustomCalendarRenderObject {
       markNeedsLayout();
     }
   }
+
+  ResourceRowLayout? _resourceRowLayout;
+
+  ResourceRowLayout? get resourceRowLayout => _resourceRowLayout;
+
+  set resourceRowLayout(ResourceRowLayout? value) {
+    if (_resourceRowLayout == value) {
+      return;
+    }
+
+    _resourceRowLayout = value;
+    if (childCount == 0) {
+      markNeedsPaint();
+    } else {
+      markNeedsLayout();
+    }
+  }
+
+  ResourceRowLayout get _rowLayout =>
+      resourceRowLayout ??
+      ResourceRowLayout.uniform(
+        resourceItemHeight,
+        resourceCollection?.length ?? 0,
+      );
 
   List<CalendarResource>? resourceCollection;
 
@@ -1025,14 +1068,15 @@ class _TimelineRenderObject extends CustomCalendarRenderObject {
     if (isResourceEnabled) {
       startXPosition = 0;
       endXPosition = size.width;
-      startYPosition = resourceItemHeight;
+      final ResourceRowLayout rowLayout = _rowLayout;
+      startYPosition = rowLayout.heightOf(0);
       for (int i = 0; i < resourceCollection!.length; i++) {
         canvas.drawLine(
           Offset(startXPosition, startYPosition),
           Offset(endXPosition, startYPosition),
           _linePainter,
         );
-        startYPosition += resourceItemHeight;
+        startYPosition += rowLayout.heightOf(i + 1);
       }
     }
 
@@ -1048,10 +1092,10 @@ class _TimelineRenderObject extends CustomCalendarRenderObject {
     double top = 0;
     double height = size.height;
     if (isResourceEnabled) {
-      final int index =
-          (calendarCellNotifier.value!.dy / resourceItemHeight).truncate();
-      top = index * resourceItemHeight;
-      height = resourceItemHeight;
+      final ResourceRowLayout rowLayout = _rowLayout;
+      final int index = rowLayout.indexAt(calendarCellNotifier.value!.dy);
+      top = rowLayout.topOf(index);
+      height = rowLayout.heightOf(index);
     }
     const double padding = 0.5;
     top = top == 0 ? padding : top;
@@ -1154,15 +1198,17 @@ class _TimelineRenderObject extends CustomCalendarRenderObject {
     final double height = isResourceEnabled ? resourceItemHeight : size.height;
     double top = 0;
     if (isResourceEnabled) {
+      final ResourceRowLayout rowLayout = _rowLayout;
       for (int i = 0; i < resourceCollection!.length; i++) {
+        final double rowHeight = rowLayout.heightOf(i);
         semanticsBuilder = _getAccessibilityDates(
           size,
           top,
-          height,
+          rowHeight,
           semanticsBuilder,
           resourceCollection![i],
         );
-        top += height;
+        top += rowHeight;
       }
     } else {
       semanticsBuilder = _getAccessibilityDates(

@@ -375,6 +375,23 @@ typedef LoadMoreCallback = Future<void> Function();
 typedef ResourceViewHeaderBuilder =
     Widget Function(BuildContext context, ResourceViewHeaderDetails details);
 
+/// Signature for a function that returns the height of an individual resource
+/// row in the timeline views.
+///
+/// Returns the height of the row at [index] for [resource]. When it returns
+/// null (or a value that is not finite or is less than or equal to zero), the
+/// row uses [defaultHeight], the common row height calculated by
+/// [ResourceViewSettings].
+///
+/// See also:
+/// * [SfCalendar.resourceItemHeightBuilder], which matches this signature.
+typedef ResourceItemHeightBuilder =
+    double? Function(
+      CalendarResource resource,
+      int index,
+      double defaultHeight,
+    );
+
 /// Contains the details that needed on month cell builder.
 ///
 /// Details for the [MonthCellBuilder], such as [date], [appointments],

@@ -12,6 +12,7 @@ import '../common/calendar_view_helper.dart';
 import '../common/date_time_engine.dart';
 import '../common/enums.dart';
 import '../common/event_args.dart';
+import '../common/resource_row_layout.dart';
 import '../resource_view/calendar_resource.dart';
 import '../settings/time_slot_view_settings.dart';
 import '../sfcalendar.dart';
@@ -38,6 +39,7 @@ class AppointmentLayout extends StatefulWidget {
     this.height,
     this.localizations,
     this.updateCalendarState, {
+    this.resourceRowLayout,
     Key? key,
   }) : super(key: key);
 
@@ -74,6 +76,10 @@ class AppointmentLayout extends StatefulWidget {
 
   /// Defines the resource item height of the calendar widget.
   final double? resourceItemHeight;
+
+  /// Defines the layout (per row heights) of the resource rows. When null, all
+  /// the rows use [resourceItemHeight].
+  final ResourceRowLayout? resourceRowLayout;
 
   /// Defines the scale factor of the calendar widget.
   final double textScaleFactor;
@@ -129,6 +135,13 @@ class AppointmentLayout extends StatefulWidget {
 }
 
 class _AppointmentLayoutState extends State<AppointmentLayout> {
+  ResourceRowLayout get _rowLayout =>
+      widget.resourceRowLayout ??
+      ResourceRowLayout.uniform(
+        widget.resourceItemHeight ?? 0,
+        widget.resourceCollection?.length ?? 0,
+      );
+
   /// It holds the appointment views for the visible appointments.
   final List<AppointmentView> _appointmentCollection = <AppointmentView>[];
 
@@ -172,7 +185,8 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
         widget.height != oldWidget.height ||
         (CalendarViewHelper.isTimelineView(widget.view) &&
             (widget.resourceCollection != oldWidget.resourceCollection ||
-                widget.resourceItemHeight != oldWidget.resourceItemHeight))) {
+                widget.resourceItemHeight != oldWidget.resourceItemHeight ||
+                widget.resourceRowLayout != oldWidget.resourceRowLayout))) {
       _weekNumberPanelWidth = CalendarViewHelper.getWeekNumberPanelWidth(
         widget.calendar.showWeekNumber,
         widget.width,
@@ -421,6 +435,7 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
       _indexAppointments,
       _monthAppointmentCountViews,
       _weekNumberPanelWidth,
+      resourceRowLayout: widget.resourceRowLayout,
       widgets: _children,
     );
   }
@@ -1038,8 +1053,7 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
       widget.calendar.cellEndPadding,
       widget.isMobilePlatform,
     );
-    final double slotHeight =
-        isResourceEnabled ? widget.resourceItemHeight! : widget.height;
+    final ResourceRowLayout rowLayout = _rowLayout;
     final double timelineAppointmentHeight = _getTimelineAppointmentHeight(
       widget.calendar.timeSlotViewSettings,
       widget.view,
@@ -1073,6 +1087,10 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
         column += 1;
       }
 
+      final double slotHeight =
+          isResourceEnabled
+              ? rowLayout.heightOf(appointmentView.resourceIndex)
+              : widget.height;
       double appointmentHeight = timelineAppointmentHeight;
       if (appointmentHeight * appointmentView.maxPositions > slotHeight) {
         appointmentHeight = slotHeight;
@@ -1086,7 +1104,7 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
         /// To render the appointment on specific resource slot, we have got the
         /// appointment's resource index  and calculated y position based on
         /// this.
-        yPosition += appointmentView.resourceIndex * widget.resourceItemHeight!;
+        yPosition += rowLayout.topOf(appointmentView.resourceIndex);
       }
 
       final DateTime endTime = appointment.actualEndTime;
@@ -1215,10 +1233,7 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
       widget.calendar.timeSlotViewSettings,
       widget.view,
     );
-    final double slotHeight =
-        isResourceEnabled
-            ? widget.resourceItemHeight! - cellEndPadding
-            : widget.height - cellEndPadding;
+    final ResourceRowLayout rowLayout = _rowLayout;
     for (int i = 0; i < _appointmentCollection.length; i++) {
       final AppointmentView appointmentView = _appointmentCollection[i];
       if (appointmentView.canReuse || appointmentView.appointment == null) {
@@ -1292,6 +1307,11 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
 
       final double minuteHeight = cellWidth / timeInterval;
 
+      final double slotHeight =
+          isResourceEnabled
+              ? rowLayout.heightOf(appointmentView.resourceIndex) -
+                  cellEndPadding
+              : widget.height - cellEndPadding;
       double appointmentHeight = timelineAppointmentHeight;
       if (appointmentHeight * appointmentView.maxPositions > slotHeight) {
         appointmentHeight = slotHeight;
@@ -1313,7 +1333,7 @@ class _AppointmentLayoutState extends State<AppointmentLayout> {
         /// To render the appointment on specific resource slot, we have got the
         /// appointment's resource index  and calculated y position based on
         /// this.
-        yPosition += appointmentView.resourceIndex * widget.resourceItemHeight!;
+        yPosition += rowLayout.topOf(appointmentView.resourceIndex);
       }
 
       totalMinutes =
@@ -1404,6 +1424,7 @@ class _AppointmentRenderWidget extends MultiChildRenderObjectWidget {
     this.indexAppointments,
     this.monthAppointmentCountViews,
     this.weekNumberPanelWidth, {
+    this.resourceRowLayout,
     List<Widget> widgets = const <Widget>[],
   }) : super(children: widgets);
 
@@ -1418,6 +1439,7 @@ class _AppointmentRenderWidget extends MultiChildRenderObjectWidget {
   final ValueNotifier<Offset?> appointmentHoverPosition;
   final List<CalendarResource>? resourceCollection;
   final double? resourceItemHeight;
+  final ResourceRowLayout? resourceRowLayout;
   final double textScaleFactor;
   final bool isMobilePlatform;
   final double width;
@@ -1451,6 +1473,7 @@ class _AppointmentRenderWidget extends MultiChildRenderObjectWidget {
       indexAppointments,
       monthAppointmentCountViews,
       weekNumberPanelWidth,
+      resourceRowLayout: resourceRowLayout,
     );
   }
 
@@ -1471,6 +1494,7 @@ class _AppointmentRenderWidget extends MultiChildRenderObjectWidget {
       ..appointmentHoverPosition = appointmentHoverPosition
       ..resourceCollection = resourceCollection
       ..resourceItemHeight = resourceItemHeight
+      ..resourceRowLayout = resourceRowLayout
       ..textScaleFactor = textScaleFactor
       ..isMobilePlatform = isMobilePlatform
       ..width = width
@@ -1504,8 +1528,9 @@ class _AppointmentRenderObject extends CustomCalendarRenderObject {
     this.appointmentCollection,
     this.indexAppointments,
     this.monthAppointmentCountViews,
-    this._weekNumberPanelWidth,
-  );
+    this._weekNumberPanelWidth, {
+    ResourceRowLayout? resourceRowLayout,
+  }) : _resourceRowLayout = resourceRowLayout;
 
   List<CalendarAppointment>? _visibleAppointments;
 
@@ -1694,6 +1719,19 @@ class _AppointmentRenderObject extends CustomCalendarRenderObject {
     }
 
     _resourceItemHeight = value;
+    markNeedsLayout();
+  }
+
+  ResourceRowLayout? _resourceRowLayout;
+
+  ResourceRowLayout? get resourceRowLayout => _resourceRowLayout;
+
+  set resourceRowLayout(ResourceRowLayout? value) {
+    if (_resourceRowLayout == value) {
+      return;
+    }
+
+    _resourceRowLayout = value;
     markNeedsLayout();
   }
 

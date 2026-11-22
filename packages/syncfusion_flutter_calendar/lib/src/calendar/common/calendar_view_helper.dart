@@ -9,6 +9,7 @@ import 'package:syncfusion_flutter_core/theme.dart';
 import '../../../calendar.dart';
 import '../appointment_engine/appointment_helper.dart';
 import 'date_time_engine.dart';
+import 'resource_row_layout.dart';
 
 /// All day appointment height
 const double kAllDayAppointmentHeight = 20;
@@ -345,6 +346,26 @@ class CalendarViewHelper {
     return resourceCount * itemHeight < timelineViewHeight
         ? timelineViewHeight / resourceCount
         : itemHeight;
+  }
+
+  /// Returns the layout of the resource rows: the common row height from
+  /// [getResourceItemHeight], with the optional per-row overrides from
+  /// [builder]. Without a builder (or without any usable override) the layout
+  /// is uniform and behaves exactly like the single common height.
+  static ResourceRowLayout getResourceRowLayout(
+    double resourceViewSize,
+    double timelineViewHeight,
+    ResourceViewSettings resourceViewSettings,
+    List<CalendarResource> resources,
+    ResourceItemHeightBuilder? builder,
+  ) {
+    final double defaultHeight = getResourceItemHeight(
+      resourceViewSize,
+      timelineViewHeight,
+      resourceViewSettings,
+      resources.length,
+    );
+    return ResourceRowLayout.fromBuilder(defaultHeight, resources, builder);
   }
 
   /// Check and returns whether the resource panel can be added or not in the
